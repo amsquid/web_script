@@ -5,10 +5,22 @@ use serde_json::Value;
 
 
 fn main() {
+	println!("Checking for json files...");
+
+	if !fs::metadata("config.json").is_ok() {
+		println!("Copying config.json");
+		copy_default_file("config.json");
+	}
+
+	if !fs::metadata("routes.json").is_ok() {
+		println!("Copying routes.json");
+		copy_default_file("routes.json");
+	}
+
 	println!("Getting config data...");
 
-	let mut host: &str = "127.0.0.1";
-	let mut port: u16  = 8080;
+	let host: &str;
+	let port: u16;
 
 	let config_data = get_json_file("config.json".to_string());
 
@@ -27,6 +39,11 @@ fn main() {
 
 		pool.execute(|| handle_conn(stream, routes));
 	}
+}
+
+fn copy_default_file(name: &str) {
+	let _ = fs::write(name, "");
+	let _ = fs::copy(format!("defaults/{}", name), name);
 }
 
 fn get_json_file(path: String) -> Value {
@@ -55,8 +72,8 @@ fn handle_conn(mut stream: TcpStream, routes: Value) {
 	let request_line: Vec<&str> = _http_request[0].split(" ").collect();
 	let request_url = request_line.get(1).unwrap();
 
-	let mut status: String = "".to_string();
-	let mut content: String = "".to_string();
+	let status: String;
+	let content: String;
 
 	// WWW routes
 	if routes["www"][request_url].is_null() {
