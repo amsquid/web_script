@@ -3,30 +3,38 @@ use threadpool::ThreadPool;
 
 use serde_json::Value;
 
-const HOST: &str = "127.0.0.1";
-const PORT: u16  = 8080;
 
 fn main() {
-	println!("Binding TCP listener to {}:{}", HOST, PORT);
+	println!("Getting config data...");
 
-	let listener: TcpListener = TcpListener::bind((HOST, PORT)).unwrap();
+	let mut host: &str = "127.0.0.1";
+	let mut port: u16  = 8080;
+
+	let config_data = get_json_file("config.json".to_string());
+
+	host = config_data["host"].as_str().unwrap();
+	port = config_data["port"].as_u64().unwrap() as u16;
+
+	println!("Binding TCP listener to {}:{}", host, port);
+
+	let listener: TcpListener = TcpListener::bind((host, port)).unwrap();
 
 	let pool: ThreadPool = ThreadPool::new(16);
 
 	for stream in listener.incoming() {
 		let stream = stream.unwrap();
-		let routes: Value = get_routes();
+		let routes: Value = get_json_file("routes.json".to_string());
 
 		pool.execute(|| handle_conn(stream, routes));
 	}
 }
 
-fn get_routes() -> Value {
-	let routes_content = read_to_string("routes.json").unwrap();
+fn get_json_file(path: String) -> Value {
+	let content = read_to_string(path).unwrap();
 
-	let routes: Value = serde_json::from_str(&routes_content).unwrap();
+	let json: Value = serde_json::from_str(&content).unwrap();
 
-	return routes;
+	return json;
 }
 
 fn format_response(status: String, content: String) -> String {
