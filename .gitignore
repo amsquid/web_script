@@ -1,2 +1,4 @@
 /target
 /build
+config.json
+routes.json
